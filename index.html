@@ -734,6 +734,9 @@ body::before { background: var(--surface-raised); }
 .x-doc-kv b, .x-doc-to b { display: block; font-weight: 600; }
 .x-lines th:first-child, .x-lines td:first-child { width: 52%; } .x-lines td:last-child { width: 1%; }
 .x-doc table { margin-top: 14px; } .x-doc .x-nw, .x-doc .n { white-space: nowrap; }
+/* Use the full width of wide screens; centre only beyond 1920px */
+.x-main { max-width: 1920px; margin-inline: auto; }
+.x-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 /* List-level actions and set-up screens */
 .x-h2 { flex-wrap: wrap; } .x-tabact { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .x-kinds { overflow-x: auto; flex-wrap: nowrap; max-width: 100%; } .x-kinds button { white-space: nowrap; }
