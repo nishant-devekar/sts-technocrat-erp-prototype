@@ -734,6 +734,40 @@ body::before { background: var(--surface-raised); }
 .x-doc-kv b, .x-doc-to b { display: block; font-weight: 600; }
 .x-lines th:first-child, .x-lines td:first-child { width: 52%; } .x-lines td:last-child { width: 1%; }
 .x-doc table { margin-top: 14px; } .x-doc .x-nw, .x-doc .n { white-space: nowrap; }
+/* Form alignment: checkboxes get their own row; line-table cells share one top line and height */
+.sts-field:has(> .x-check) { grid-column: 1 / -1; }
+.sts-field:has(> .x-check) + .sts-field:has(> .x-check) { margin-top: -6px; }
+.x-check input { width: 16px; height: 16px; margin: 0; flex: none; accent-color: var(--navy); }
+.x-lines td { vertical-align: top; padding-top: 8px; padding-bottom: 8px; }
+.x-lines .sts-input, .x-lines select.sts-input, .x-lines .x-combo-in { height: 40px; box-sizing: border-box; }
+.x-lines td > input[type=checkbox] { margin-top: 12px; width: 16px; height: 16px; }
+.x-lines [data-rmline] { margin-top: 4px; }
+.x-lines th { white-space: nowrap; }
+@media (max-width: 760px) {
+  .x-lines thead { display: none; }
+  .x-lines table, .x-lines tbody { display: block; } .x-lines .sts-table-w { overflow: visible; box-shadow: none; }
+  .x-lines tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 8px 10px; align-items: end; padding: 12px; margin-bottom: 8px; border-radius: var(--radius-md); background: var(--surface-sunken); }
+  .x-lines .sts-table tbody td { display: block; padding: 0; border: 0; height: auto !important; width: auto !important; min-width: 0 !important; }
+  .x-lines .x-combo, .x-lines .x-combo-in { min-width: 0 !important; width: 100%; }
+  .x-lines tbody td.x-itemcell { grid-column: 1 / -1; }
+  .x-lines tbody td[data-label]::before { content: attr(data-label); display: block; font: 500 11px/14px var(--font-sans); color: var(--ink-muted); margin-bottom: 4px; }
+  .x-lines tbody td:last-child:not([data-label]) { grid-column: 3; grid-row: 2; align-self: end; }
+  .x-lines .sts-input { min-width: 0 !important; width: 100%; }
+  .sts-links a { white-space: normal; height: auto; min-height: 32px; padding-top: 6px; padding-bottom: 6px; } .sts-listrow b { white-space: normal; }
+}
+/* Leaving a form you've typed in: a focused dialog over the form */
+.x-leave { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 16px; background: rgba(14, 23, 38, 0.28); animation: x-fade .12s ease-out; }
+.x-leave-card { width: 500px; max-width: 100%; background: var(--surface-raised); border-radius: var(--radius-xl); padding: 24px; box-shadow: 0 24px 64px rgba(14, 23, 38, 0.28), 0 0 0 1px rgba(14, 23, 38, 0.06); animation: x-pop .14s ease-out; }
+.x-leave-ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--warn-soft); color: var(--warn); margin-bottom: 14px; } .x-leave-ic svg.lucide { width: 20px; height: 20px; }
+.x-leave-t { font: 600 17px/24px var(--font-sans); letter-spacing: -0.01em; color: var(--ink); }
+.x-leave-d { margin-top: 6px; font-size: 14px; line-height: 21px; color: var(--ink-muted); } .x-leave-d b { color: var(--ink); font-weight: 500; }
+.x-leave-b { display: flex; flex-wrap: nowrap; gap: 8px; margin-top: 22px; } .x-leave-b .sts-btn { white-space: nowrap; }
+.x-leave-b .sts-btn-primary { order: 3; margin-left: auto; } .x-leave-b [data-leave=draft] { order: 2; } .x-leave-discard { order: 1; color: var(--bad); padding-left: 10px; padding-right: 10px; }
+.x-leave-discard:hover { background: var(--bad-soft); color: var(--bad); }
+.x-draftbar { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: var(--radius-md); background: var(--navy-soft); color: var(--navy); font-size: 13px; font-weight: 500; } .x-draftbar span { flex: 1; } .x-draftbar svg.lucide { width: 16px; height: 16px; }
+@keyframes x-fade { from { opacity: 0; } } @keyframes x-pop { from { opacity: 0; transform: translateY(6px) scale(.98); } }
+@media (prefers-reduced-motion: reduce) { .x-leave, .x-leave-card { animation: none; } }
+@media (max-width: 760px) { .x-leave { place-items: end stretch; padding: 0; } .x-leave-card { width: 100%; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px)); } .x-leave-b { flex-direction: column-reverse; } .x-leave-b .sts-btn { width: 100%; justify-content: center; margin-left: 0 !important; } .x-leave-b > * { order: 0 !important; } }
 /* Use the full width of wide screens; centre only beyond 1920px */
 .x-main { max-width: 1920px; margin-inline: auto; }
 .x-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
@@ -1957,16 +1991,15 @@ body::before { background: var(--surface-raised); }
   let formState = null;
   function form(titleTxt, fields, onSubmit, opts = {}) {
     sheet(`<form id="frm" class="sts-stack" autocomplete="off" novalidate><div class="sts-spread"><div><div class="sts-label">${esc(opts.kicker || "New")}</div><div class="sts-rec-title" style="font-size:20px">${esc(titleTxt)}</div></div><button type="button" class="sts-btn sts-btn-ghost sts-btn-icon" data-close="1" aria-label="Close">${I("x")}</button></div>
+      ${draftOf(opts, titleTxt) ? `<div class="x-draftbar">${I("history")}<span>Draft restored from ${esc(draftOf(opts, titleTxt).at)}</span><button type="button" class="sts-btn sts-btn-sm sts-btn-ghost" data-freshstart="1">Start fresh</button></div>` : ""}
       ${opts.intro ? `<div class="sts-note">${I("info")}<span>${gl(opts.intro)}</span></div>` : ""}<div class="sts-fields">${fields.map(field).join("")}</div>
       ${opts.total ? `<div class="x-form-total" id="ftotal"></div>` : ""}
-      <div class="x-discard" id="fdiscard" hidden><span>Discard what you've typed?</span><button type="button" class="sts-btn sts-btn-sm" data-keep="1">Keep editing</button><button type="button" class="sts-btn sts-btn-sm sts-btn-danger" data-discard="1">Discard</button></div>
       <div class="x-form-foot"><span class="sts-label x-hide-s">${fields.length > 2 ? "Enter moves on · ⌘/Ctrl+Enter saves · Esc closes" : "Enter saves · Esc closes"}</span><div class="sts-row"><button type="button" class="sts-btn" data-close="1">Cancel</button><button class="sts-btn sts-btn-primary" type="submit">${esc(opts.submit || "Save")}</button></div></div></form>`);
-    const frm = $("#frm"); formState = { dirty: false, fields, opts };
+    const frm = $("#frm"); formState = { dirty: false, fields, opts, title: titleTxt, key: draftKey(opts, titleTxt), reopen: () => form(titleTxt, fields, onSubmit, opts) };
     const refresh = () => { fields.forEach(fd => { if (fd.hint) { const el = document.querySelector(`[data-hint-for="${fd.k}"]`); if (el) el.innerHTML = fd.hint(read(fd)) || ""; } }); if (opts.total) { const vals = {}; fields.forEach(fd => vals[fd.k] = read(fd)); $("#ftotal").innerHTML = opts.total(vals) || ""; icons(); } };
     $("#sheet-body").onclick = e => {
       if (e.target.closest("[data-close]")) return requestClose();
-      if (e.target.closest("[data-keep]")) { $("#fdiscard").hidden = true; return; }
-      if (e.target.closest("[data-discard]")) { formState = null; return closeSheet(); }
+      if (e.target.closest("[data-freshstart]")) { dropDraft(formState.key); return formState.reopen(); }
       const add = e.target.closest("[data-addline]"); if (add) { addLine(add.closest(".x-lines")); refresh(); }
       const rm = e.target.closest("[data-rmline]"); if (rm) { rm.closest("tr").remove(); formState.dirty = true; refresh(); }
       const dc = e.target.closest("[data-datechip]"); if (dc) { const inp = document.getElementById(dc.dataset.for); inp.value = H.addDays(T(), +dc.dataset.datechip); formState.dirty = true; refresh(); }
@@ -1994,16 +2027,48 @@ body::before { background: var(--surface-raised); }
         const empty = fd.type === "lines" ? !v.some(l => (l.item || l.part) && +(l.qty || 0) > 0) : fd.type === "check" ? false : !String(v ?? "").trim();
         if (fd.req && empty) { const el = fd.type === "lines" ? document.querySelector(".x-lines") : document.getElementById("f_" + fd.k).closest(".sts-field"); el.classList.add("is-error"); el.insertAdjacentHTML("beforeend", `<span class="sts-field-msg x-req-msg">${I("circle-alert")}${esc(fd.type === "lines" ? "Add at least one line with a quantity" : "Needed")}</span>`); bad = bad || el; } }
       if (bad) { icons(); const f = bad.querySelector("input:not([type=hidden]), select"); if (f) f.focus(); return; }
-      const vals = {}; fields.forEach(fd => { vals[fd.k] = read(fd); }); formState = null; onSubmit(vals);
+      const vals = {}; fields.forEach(fd => { vals[fd.k] = read(fd); }); dropDraft(formState.key); formState = null; onSubmit(vals);
     };
     fields.forEach(fd => { if (fd.type === "lines" && fd.onItem) document.querySelectorAll(".x-lines tbody tr").forEach(tr => { const h = tr.querySelector("input[type=hidden][data-c=item]"); if (h && h.value) fd.onItem(tr, h.value, true); }); });
-    refresh(); const first = frm.querySelector(".sts-field input:not([type=hidden]):not([readonly]):not([type=checkbox]), .sts-field select"); if (first) first.focus();
+    const dr = draftOf(opts, titleTxt); if (dr) restoreForm(fields, dr.vals);
+    refresh(); formState.initial = JSON.stringify(snapForm(fields)); if (dr) formState.initial = "restored";
+    const first = frm.querySelector(".sts-field input:not([type=hidden]):not([readonly]):not([type=checkbox]), .sts-field select"); if (first) first.focus();
   }
+  // ---- drafts & leaving a form you've typed in
+  const draftKey = (opts, t) => (opts.kicker || "") + "|" + t;
+  const draftOf = (opts, t) => (prefs.drafts || {})[draftKey(opts, t)];
+  function dropDraft(k) { if (prefs.drafts && prefs.drafts[k]) { delete prefs.drafts[k]; savePrefs(); } }
+  function snapForm(fields) { const v = {}; fields.forEach(fd => { v[fd.k] = read(fd); }); return v; }
+  function isDirty() { return !!formState && !!$("#frm") && (formState.initial === "restored" || JSON.stringify(snapForm(formState.fields)) !== formState.initial); }
+  function filledLabels() { if (!formState) return []; let init = {}; try { init = formState.initial === "restored" ? {} : JSON.parse(formState.initial); } catch (e) {} const now = snapForm(formState.fields);
+    return formState.fields.filter(fd => JSON.stringify(now[fd.k]) !== JSON.stringify(init[fd.k]) && (fd.type === "lines" ? now[fd.k].some(l => l.item) : fd.type === "check" ? now[fd.k] : String(now[fd.k] ?? "").trim())).map(fd => { const l = String(fd.label).replace(/<[^>]+>/g, "").replace(/\s*\(.*?\)\s*/g, " ").trim(); return fd.type === "lines" ? `${l} (${now[fd.k].filter(x => x.item).length} line${now[fd.k].filter(x => x.item).length > 1 ? "s" : ""})` : l; }); }
+  function restoreForm(fields, vals) {
+    const optLabel = (opts, v) => { const o = optsOf(opts || []).find(x => String(x[0]) === String(v)); return o ? o[1] : ""; };
+    fields.forEach(fd => { const v = vals[fd.k]; if (v === undefined) return;
+      if (fd.type === "lines") { const t = document.querySelector(".x-lines"); if (!t) return; t.querySelector("tbody").innerHTML = ""; (v.length ? v : [{}]).forEach(rowV => { addLine(t); const tr = t.querySelector("tbody tr:last-child"); tr.querySelectorAll("[data-c]").forEach(el => { const val = rowV[el.dataset.c]; if (val === undefined) return; if (el.type === "checkbox") el.checked = !!val; else el.value = val; if (el.type === "hidden") { const vis = el.closest(".x-combo")?.querySelector(".x-combo-in"); if (vis) vis.value = optLabel(fd.items, val); } }); const h = tr.querySelector("input[type=hidden][data-c=item]"); if (h && h.value && fd.onItem) fd.onItem(tr, h.value, true); }); return; }
+      const el = document.getElementById("f_" + fd.k); if (!el) return; if (fd.type === "check") el.checked = !!v; else el.value = v;
+      if (el.type === "hidden") { const vis = el.closest(".x-combo")?.querySelector(".x-combo-in"); if (vis) vis.value = optLabel(fd.options, v); } });
+  }
+  function showLeave() {
+    hideLeave(); const what = filledLabels(); const t = formState.title; const isEdit = /^Edit /.test(t);
+    const el = document.createElement("div"); el.id = "leave"; el.className = "x-leave";
+    el.innerHTML = `<div class="x-leave-card" role="alertdialog" aria-modal="true" aria-labelledby="leave-t" aria-describedby="leave-d"><span class="x-leave-ic">${I("file-pen-line")}</span>
+      <div class="x-leave-t" id="leave-t">${isEdit ? `Close without saving changes to ${esc(t.replace(/^Edit /, ""))}?` : `Close “${esc(t)}” without saving?`}</div>
+      <div class="x-leave-d" id="leave-d">${what.length ? `You've filled in <b>${what.slice(0, 4).map(esc).join(", ")}${what.length > 4 ? ` and ${what.length - 4} more` : ""}</b>.` : "You've made changes."} Keep a draft to pick up where you left off, or discard it.</div>
+      <div class="x-leave-b"><button type="button" class="sts-btn sts-btn-primary" data-leave="keep">Keep editing</button><button type="button" class="sts-btn" data-leave="draft">${I("history")}Close and keep draft</button><button type="button" class="sts-btn sts-btn-ghost x-leave-discard" data-leave="discard">${I("trash-2")}Discard</button></div></div>`;
+    document.body.appendChild(el); icons(); el.querySelector("[data-leave=keep]").focus();
+    el.addEventListener("click", e => { const b = e.target.closest("[data-leave]"); if (!b && e.target !== el) return; const k = b ? b.dataset.leave : "keep";
+      if (k === "keep") { hideLeave(); return; }
+      if (k === "draft") { prefs.drafts = prefs.drafts || {}; prefs.drafts[formState.key] = { at: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), vals: snapForm(formState.fields) }; savePrefs(); hideLeave(); formState = null; closeSheet(); toast("Draft kept. Open the same form to carry on.", "ok"); return; }
+      if (k === "discard") { dropDraft(formState.key); hideLeave(); formState = null; closeSheet(); } });
+    el.addEventListener("keydown", e => { if (e.key === "Tab") { const bs = [...el.querySelectorAll("button")]; const i = bs.indexOf(document.activeElement); e.preventDefault(); bs[(i + (e.shiftKey ? -1 : 1) + bs.length) % bs.length].focus(); } });
+  }
+  function hideLeave() { const el = $("#leave"); if (el) el.remove(); }
   function addLine(t) { t.querySelector("tbody").insertAdjacentHTML("beforeend", t.querySelector("template").innerHTML); icons(); const r = t.querySelector("tbody tr:last-child .x-combo-in, tbody tr:last-child input:not([type=hidden])"); if (r) r.focus(); if (formState) formState.dirty = true; }
-  function requestClose() { if (formState && formState.dirty && $("#fdiscard")) { $("#fdiscard").hidden = false; return; } formState = null; closeSheet(); }
+  function requestClose() { if (isDirty()) { showLeave(); return; } formState = null; closeSheet(); }
   const optsOf = o => o.map(x => Array.isArray(x) ? x : [x, x]);
   function field(fd) {
-    const id = "f_" + fd.k, w = fd.wide || (fd.type === "select" && ["customer", "supplier", "asset"].includes(fd.key)) ? ' style="grid-column:1/-1"' : ""; const lab = `<label for="${id}">${gl(fd.label)}${fd.req ? ' <span class="x-reqdot" aria-label="required">•</span>' : ""}</label>`;
+    const id = "f_" + fd.k, w = fd.wide || (fd.type === "select" && ["customer", "supplier", "asset", "openpo", "quote", "invoice", "fgnew", "fg", "principal", "jobworker"].includes(fd.key)) ? ' style="grid-column:1/-1"' : ""; const lab = `<label for="${id}">${gl(fd.label)}${fd.req ? ' <span class="x-reqdot" aria-label="required">•</span>' : ""}</label>`;
     const hint = `${fd.help ? `<span class="sts-field-msg">${gl(fd.help)}</span>` : ""}${fd.hint ? `<div class="x-hint" data-hint-for="${fd.k}"></div>` : ""}`;
     if (fd.type === "select") return `<div class="sts-field"${w}>${lab}${comboHTML({ key: fd.key || fd.k, options: optsOf(fd.options), addNew: fd.addNew, ph: fd.ph }, fd.value, `id="${id}"`)}${hint}</div>`;
     if (fd.type === "check") return `<div class="sts-field"${w}><label class="x-check"><input type="checkbox" id="${id}" ${fd.value ? "checked" : ""}> ${gl(fd.label)}</label></div>`;
@@ -2011,7 +2076,7 @@ body::before { background: var(--surface-raised); }
     if (fd.type === "lines") {
       const itemCfg = { key: fd.key || "item:" + fd.k, options: optsOf(fd.items), ph: "Search items…" };
       const cell = (c, v) => c.type === "select" ? `<select class="sts-input" data-c="${c.k}" style="min-width:${c.w || 110}px">${c.options.map(o => `<option value="${esc(o[0])}" ${String(v[c.k] ?? "") === String(o[0]) ? "selected" : ""}>${esc(o[1])}</option>`).join("")}</select>` : c.type === "item" ? `${comboHTML(itemCfg, v[c.k], `data-c="${c.k}"`)}<div class="x-line-hint"></div>` : c.type === "check" ? `<input type="checkbox" data-c="${c.k}" ${v[c.k] ? "checked" : ""}>` : `<input class="sts-input ${c.code ? "is-code" : ""}" data-c="${c.k}" type="${c.type || "text"}" ${c.type === "number" ? 'inputmode="decimal"' : ""} step="any" value="${esc(v[c.k] ?? "")}" style="min-width:${c.w || 80}px" ${c.ro ? "readonly" : ""} ${v[c.k] !== undefined && c.k === "rate" && v._manual ? 'data-manual="1"' : ""}>`;
-      const row = (v = {}) => `<tr>${fd.cols.map(c => `<td${c.type === "item" ? ' class="x-itemcell"' : ""}>${cell(c, v)}</td>`).join("")}${fd.fixed ? "" : `<td><button type="button" class="sts-btn sts-btn-ghost sts-btn-icon sts-btn-sm" data-rmline="1" aria-label="Remove line">${I("x")}</button></td>`}</tr>`;
+      const row = (v = {}) => `<tr>${fd.cols.map(c => `<td${c.type === "item" ? ' class="x-itemcell"' : ""} data-label="${esc(String(c.label).replace(/<[^>]+>/g, ""))}">${cell(c, v)}</td>`).join("")}${fd.fixed ? "" : `<td><button type="button" class="sts-btn sts-btn-ghost sts-btn-icon sts-btn-sm" data-rmline="1" aria-label="Remove line">${I("x")}</button></td>`}</tr>`;
       return `<div class="sts-field x-lines" ${fd.fixed ? 'data-fixed="1"' : ""} style="grid-column:1/-1">${lab}<div class="sts-table-w"><table class="sts-table is-compact"><thead><tr>${fd.cols.map(c => `<th>${gl(c.label)}</th>`).join("")}${fd.fixed ? "" : "<th></th>"}</tr></thead><tbody>${(fd.value || [{}]).map(row).join("")}</tbody></table></div>
         <template>${row({})}</template>${fd.fixed ? "" : `<button type="button" class="sts-btn sts-btn-ghost sts-btn-sm" data-addline="1" style="align-self:flex-start">${I("plus")}Add line <span class="sts-kbd x-hide-s">↵ on last cell</span></button>`}${hint}</div>`;
     }
@@ -2055,7 +2120,7 @@ body::before { background: var(--surface-raised); }
     form(isNew ? (presetType === "RM" ? "Add a material" : "Add an item") : `Edit ${it.name}`, [
       { k: "name", label: "Name", req: true, wide: true, value: it ? it.name : "", ph: "As your team calls it, e.g. SS 316L sheet 3 mm", hint: n => { const d = n && V("items").find(i => !i.archived && i.id !== (it && it.id) && i.name.toLowerCase() === n.trim().toLowerCase()); return d ? `<span class="x-hint-bad">${I("circle-alert")}${esc(d.name)} already exists</span>` : ""; } },
       { k: "type", label: "Kind", type: "select", key: "itype", options: ITYPE, value: it ? it.type : presetType || "RM" },
-      ...(isNew ? [{ k: "code", label: "Item code", code: true, ph: "Leave empty to make one" }] : []),
+      ...(isNew ? [{ k: "code", label: "Item code", code: true, ph: "Auto if empty" }] : []),
       { k: "uom", label: "Unit", type: "select", key: "uom", options: UOMS, value: it ? it.uom : "kg", help: moved ? "Can't change: stock has already moved in this unit" : "" },
       { k: "grade", label: "Grade", value: it ? it.grade || "" : "", ph: "e.g. SS304, SS316L" },
       { k: "hsn", label: "HSN code", code: true, value: it ? it.hsn || "" : "", ph: "e.g. 7219 33", hint: hsnHint },
@@ -2094,7 +2159,7 @@ body::before { background: var(--surface-raised); }
     const keep = b ? V("jobs").filter(j => j.bom === b.id && ["released", "wip", "qc"].includes(j.state)).map(j => j.no) : [];
     const cost = v => (v.lines || []).filter(l => l.item).reduce((s, l) => s + (+l.qty || 0) * E.stdCost(l.item), 0) + (+v.labourHours || 0) * (E.S.meta.labourRate || 650) + (+v.jobWork || 0) + (+v.fat || 0) + (+v.freight || 0);
     form(b ? `Revise BOM · ${it.name}` : itemId ? `Create BOM · ${it.name}` : "New BOM", [
-      ...(itemId ? [] : [{ k: "item", label: "Product", type: "select", req: true, key: "fgnew", options: fg, addNew: addProduct, ph: "Pick a product, or type a new one…" }]),
+      ...(itemId ? [] : [{ k: "item", label: "Product", type: "select", req: true, key: "fgnew", options: fg, addNew: addProduct, ph: "Pick or type a new product…" }]),
       { k: "drawingRev", label: "Drawing number and revision", code: true, value: b ? b.drawingRev : "", ph: "e.g. GA-PB600 rev C" },
       { k: "needsDrawing", label: "Customer must approve the drawing before work starts", type: "check", value: b ? !!b.needsDrawing : false },
       { k: "lines", label: "Materials for one", type: "lines", req: true, items: itemOpts(i => i.type !== "SERVICE" && i.id !== itemId, "buy"), onItem: (row, id) => { const h = row.querySelector(".x-line-hint"); if (h) h.innerHTML = `${inr(E.stdCost(id))} per ${esc(IT(id).uom)}`; }, cols: [{ k: "item", label: "Material", type: "item" }, { k: "qty", label: "Qty", type: "number", w: 80 }], value: b ? b.lines.map(l => ({ ...l })) : [{}] },
@@ -2114,7 +2179,7 @@ body::before { background: var(--surface-raised); }
     form(itemId ? `Count ${IT(itemId).name}` : "Count stock", [
       { k: "loc", label: "Where you counted", type: "select", key: "loc", options: LOCS, value: l0, onPick: lc => { const t = document.querySelector(".x-lines"); t.querySelector("tbody").innerHTML = ""; rowsFor(lc).forEach(r => { addLine(t); const tr = t.querySelector("tbody tr:last-child"); const ih = tr.querySelector("input[type=hidden][data-c=item]"); ih.value = r.item; ih.closest(".x-combo").querySelector(".x-combo-in").value = IT(r.item).name; tr.querySelector("[data-c=system]").value = r.system; }); } },
       { k: "lines", label: "Counted on the shelf", type: "lines", items: itemOpts(i => i.type !== "SERVICE"), onItem: (row, id) => { const lc = document.getElementById("f_loc").value; row.querySelector("[data-c=system]").value = E.stock(id, lc, "avail"); const h = row.querySelector(".x-line-hint"); if (h) h.textContent = IT(id).uom; },
-        cols: [{ k: "item", label: "Item", type: "item" }, { k: "system", label: "System", type: "number", w: 70, ro: true }, { k: "counted", label: "Counted", type: "number", w: 80 }, { k: "reason", label: "Reason if different", type: "select", options: REASONS, w: 130 }], value: rowsFor(l0), help: "Leave Counted empty for anything you didn't count. Usable stock only: QC hold and job-worker stock are counted in their own flows." },
+        cols: [{ k: "item", label: "Item", type: "item" }, { k: "system", label: "System", type: "number", w: 84, ro: true }, { k: "counted", label: "Counted", type: "number", w: 90 }, { k: "reason", label: "Reason if different", type: "select", options: REASONS, w: 130 }], value: rowsFor(l0), help: "Leave Counted empty for anything you didn't count. Usable stock only: QC hold and job-worker stock are counted in their own flows." },
       { k: "note", label: "Note", wide: true, ph: "e.g. Monthly count, Pune stores" }],
       v => { const r = act("stockCount", { loc: v.loc, note: v.note, lines: v.lines.filter(l => l.item).map(l => ({ item: l.item, counted: l.counted === "" ? "" : +l.counted, reason: l.reason })) }, "Stock adjusted"); if (r) open("counts", r.id); },
       { kicker: "Inventory", submit: "Adjust stock", total: v => { const ls = (v.lines || []).filter(l => l.item && l.counted !== ""); const d = ls.map(l => ({ l, diff: +l.counted - +l.system })).filter(x => Math.abs(x.diff) > 1e-9); if (!ls.length) return ""; const val = d.reduce((s, x) => s + Math.abs(x.diff) * E.stdCost(x.l.item), 0); const miss = d.filter(x => !x.l.reason).length;
@@ -2135,7 +2200,7 @@ body::before { background: var(--surface-raised); }
     newCPO(a = {}) { const q = a.id ? E.S.quotes[a.id] : null; const quoteOpts = V("quotes").filter(x => ["sent", "approved"].includes(x.state)).map(x => [x.id, `${num("quotes", x)} · ${pn(x.party)}`, `${lakh(x.value)} · ${x.lines.length} line${x.lines.length > 1 ? "s" : ""}`]);
       form("Enter customer PO", [...(q ? [] : [{ k: "quote", label: "Against our quotation (fills everything)", type: "select", options: [["", "No quotation", "type the lines yourself"], ...quoteOpts], value: "", key: "quote",
           onPick: id => { if (!id) return; const qq = E.S.quotes[id]; const hid = document.getElementById("f_party"); const box = hid.closest(".x-combo"); hid.value = qq.party; box.querySelector(".x-combo-in").value = P(qq.party).name; const t = document.querySelector(".x-lines"); t.querySelector("tbody").innerHTML = ""; qq.lines.forEach((l, i) => { addLine(t); const tr = t.querySelector("tbody tr:last-child"); tr.querySelector("[data-c=sr]").value = String(i + 1).padStart(2, "0"); const ih = tr.querySelector("input[type=hidden][data-c=item]"); ih.value = l.item; ih.closest(".x-combo").querySelector(".x-combo-in").value = IT(l.item).name; tr.querySelector("[data-c=qty]").value = l.qty; tr.querySelector("[data-c=rate]").value = l.rate; tr.querySelector(".x-line-hint").innerHTML = itemHint(l.item); }); } }]),
-        { k: "party", label: "Customer", type: "select", req: true, options: custOpts(), value: q ? q.party : "", key: "customer", addNew: addCustomer, hint: custHint, ph: "Search or add a customer…" }, { k: "custPo", label: "Their PO number", code: true, req: true, ph: "Exactly as printed on their PO" }, { k: "date", label: "PO date", type: "date", value: T(), chips: ["0"] },
+        { k: "party", label: "Customer", type: "select", req: true, options: custOpts(), value: q ? q.party : "", key: "customer", addNew: addCustomer, hint: custHint, ph: "Search or add a customer…" }, { k: "custPo", label: "Their PO number", code: true, req: true, ph: "As printed on their PO" }, { k: "date", label: "PO date", type: "date", value: T(), chips: ["0"] },
         { k: "shipToSEZ", label: "They want it delivered to an SEZ unit", type: "check" },
         { k: "lines", label: "Lines as on their PO", type: "lines", req: true, items: itemOpts(sellable), onItem: lineFill("sell"), cols: [{ k: "sr", label: "Their line no.", w: 70 }, { k: "custCode", label: "Their item code", code: true, w: 110 }, { k: "item", label: "Our item", type: "item" }, { k: "qty", label: "Qty", type: "number", w: 64 }, { k: "rate", label: "Rate ₹", type: "number", w: 96 }],
           value: q ? q.lines.map((l, i) => ({ sr: String(i + 1).padStart(2, "0"), item: l.item, qty: l.qty, rate: l.rate })) : [{ sr: "01" }], help: "Their line numbers and item codes print unchanged on our job card, challan and invoice." }],
@@ -2181,10 +2246,10 @@ body::before { background: var(--surface-raised); }
     newMakeStock() { const opts = V("items").filter(i => i.type === "FG" && !i.archived).map(i => { const b = V("boms").find(x => x.item === i.id); return [i.id, i.name, b ? `cost ${inr(E.stdCost(i.id))} · ${stockOf(i.id)} in stock · BOM rev ${b.rev}` : "no BOM yet · create one first", b ? "" : "warn"]; });
       form("Make for stock", [{ k: "item", label: "Product", type: "select", req: true, key: "fg", options: opts, hint: id => { if (!id) return ""; const b = V("boms").find(x => x.item === id); return b ? `<span class="x-hint-ok">${I("list-tree")}Uses BOM rev ${esc(b.rev)} · ${b.lines.length} materials · ${b.labourHours} h each</span>` : `<span class="x-hint-warn">${I("circle-alert")}No BOM yet. Create it in BOM first.</span>`; } }, { k: "qty", label: "How many", type: "number", req: true, value: 1 }, { k: "reason", label: "Why", value: "For stock", ph: "e.g. Demo units, fast-moving spares" }],
         v => { const r = act("makeForStock", { ...v, qty: +v.qty }, "Job planned"); if (r) open("jobs", r.id); }, { kicker: "Manufacturing", submit: "Plan job", intro: "A job without a customer PO. It goes through the same release, material and QC steps." }); },
-    newGauge() { form("Add a gauge", [{ k: "id", label: "Tag on the gauge", code: true, req: true, ph: "e.g. DP-04" }, { k: "name", label: "What it is", req: true, ph: "e.g. Differential pressure gauge" }, { k: "range", label: "Range", ph: "e.g. 0–500 Pa" }, { k: "calUntil", label: "Calibration valid until", type: "date", req: true, value: H.addDays(T(), 365), chips: ["365"] }, { k: "lab", label: "Calibration lab", ph: "NABL lab name" }],
+    newGauge() { form("Add a gauge", [{ k: "id", label: "Tag on the gauge", code: true, req: true, ph: "e.g. DP-04" }, { k: "name", label: "What it is", req: true, ph: "e.g. Pressure gauge" }, { k: "range", label: "Range", ph: "e.g. 0–500 Pa" }, { k: "calUntil", label: "Calibration valid until", type: "date", req: true, value: H.addDays(T(), 365), chips: ["365"] }, { k: "lab", label: "Calibration lab", ph: "NABL lab name" }],
         v => act("saveInstrument", { ...v, isNew: true }, "Gauge added"), { kicker: "Quality", submit: "Add gauge" }); },
     calibrateGauge(a = {}) { const g = E.S.instruments[a.id];
-      form(`Record calibration · ${g.id}`, [{ k: "doneOn", label: "Calibrated on", type: "date", req: true, value: T(), chips: ["0"] }, { k: "result", label: "Result", type: "select", key: "calres", options: [["pass", "Passed", "goes back into use"], ["fail", "Failed", "taken out of use until it passes", "bad"]], value: "pass" }, { k: "until", label: "Valid until", type: "date", value: H.addDays(T(), 365), chips: ["365"] }, { k: "certNo", label: "Certificate number", code: true, ph: "From the lab's certificate" }, { k: "lab", label: "Lab", value: g.lab || "" }],
+      form(`Record calibration · ${g.id}`, [{ k: "doneOn", label: "Calibrated on", type: "date", req: true, value: T(), chips: ["0"] }, { k: "result", label: "Result", type: "select", key: "calres", options: [["pass", "Passed", "goes back into use"], ["fail", "Failed", "taken out of use until it passes", "bad"]], value: "pass" }, { k: "until", label: "Valid until", type: "date", value: H.addDays(T(), 365), chips: ["365"] }, { k: "certNo", label: "Certificate number", code: true, ph: "On the lab certificate" }, { k: "lab", label: "Lab", value: g.lab || "" }],
         v => act("calibrate", { ...v, id: g.id }, v.result === "fail" ? "Taken out of use" : "Calibration recorded"), { kicker: "Quality · " + g.name, submit: "Save", intro: g.outOfService ? "This gauge is out of use after a failed calibration." : `Now valid till ${fmtD(g.calUntil)}.` }); },
     newWelder() { form("Add a welder", [{ k: "name", label: "Name", req: true }, { k: "process", label: "Process", value: "TIG, SS" }, { k: "wpqUntil", label: "Qualified (WPQ) until", type: "date", req: true, value: H.addDays(T(), 365), chips: ["365"] }, { k: "certNo", label: "WPQ certificate", code: true }],
         v => act("saveWelder", v, "Welder added"), { kicker: "Quality", submit: "Add welder" }); },
@@ -2194,7 +2259,7 @@ body::before { background: var(--surface-raised); }
     newAsset() { form("Add installed equipment", [{ k: "party", label: "Customer", type: "select", req: true, key: "customer", options: custOpts(), ph: "Search customers…" }, { k: "label", label: "What it is", req: true, wide: true, ph: "e.g. Dynamic pass-box 600 × 600" }, { k: "serial", label: "Serial number", code: true, ph: "Leave empty if none" }, { k: "site", label: "Where it's installed", ph: "e.g. QC lab, block B" },
         { k: "installedOn", label: "Installed on", type: "date", req: true, chips: [] }, { k: "warrantyUntil", label: "Warranty until", type: "date", chips: [] }, { k: "custPo", label: "Their PO number", code: true }],
         v => { const r = act("addAsset", v, "Equipment registered"); if (r) open("assets", r.id); }, { kicker: "Dispatch · service", submit: "Register", intro: "For equipment supplied before the ERP. It can then get service calls and AMCs." }); },
-    newExpense() { form("Record an expense", [{ k: "head", label: "What for", type: "select", req: true, key: "exphead", options: Object.entries(E.EXP).map(([k, v]) => [k, v]) }, { k: "paidTo", label: "Paid to", req: true, ph: "e.g. MSEDCL, landlord, transporter" }, { k: "date", label: "Date", type: "date", value: T(), chips: ["0"] },
+    newExpense() { form("Record an expense", [{ k: "head", label: "What for", type: "select", req: true, key: "exphead", options: Object.entries(E.EXP).map(([k, v]) => [k, v]) }, { k: "paidTo", label: "Paid to", req: true, ph: "e.g. MSEDCL, landlord" }, { k: "date", label: "Date", type: "date", value: T(), chips: ["0"] },
         { k: "amount", label: "Amount before GST (₹)", type: "number", req: true }, { k: "gstRate", label: "GST", type: "select", key: "gst", options: [["0", "No GST"], ["5", "5%"], ["12", "12%"], ["18", "18%"], ["28", "28%"]], value: "0" }, { k: "registered", label: "Supplier is GST-registered (input GST can be claimed)", type: "check" }, { k: "note", label: "Note", wide: true }],
         v => { const r = act("recordExpense", { ...v, amount: +v.amount, gstRate: +v.gstRate }, "Expense recorded"); if (r) open("expenses", r.id); },
         { kicker: "Costing & reports", submit: "Record", total: v => { const amt = +v.amount || 0; const tot = amt * (1 + (+v.gstRate || 0) / 100); return amt ? `<div class="x-tot"><span class="sts-label">Paid from bank</span><b>${inr(tot)}</b><small>${+v.gstRate ? `incl. GST ${inr(tot - amt)}` : "no GST"}</small></div><div class="x-tot ${tot > 25000 ? "is-warn" : "is-ok"}"><span class="sts-label">Approval</span><b>${tot > 25000 ? "Director" : "You"}</b><small>${tot > 25000 ? "above ₹25,000" : "up to ₹25,000"}</small></div>` : ""; } }); },
@@ -2218,7 +2283,7 @@ body::before { background: var(--surface-raised); }
       charge: [{ k: "charge", label: "Job worker's charge (₹, optional)", type: "number" }],
       parts: [{ k: "parts", label: "Parts used (leave empty if fixed on site)", type: "lines", items: itemOpts(i => ["SPARE", "CONSUMABLE"].includes(i.type)), onItem: (row, id) => { const h = row.querySelector(".x-line-hint"); if (h) h.innerHTML = itemHint(id); }, cols: [{ k: "item", label: "Part", type: "item" }, { k: "qty", label: "Qty", type: "number", w: 70 }], value: [{ item: "HEATER-U12", qty: 1 }] }],
       amc: [{ k: "until", label: "AMC valid until", type: "date", value: H.addDays(T(), 365), chips: ["365"] }],
-      followup: [{ k: "how", label: "How", type: "select", key: "how", options: [["Call", "Call"], ["Visit", "Visit"], ["Email", "Email"], ["WhatsApp", "WhatsApp"], ["Meeting", "Meeting"]], value: "Call" }, { k: "next", label: "Next follow-up", type: "date", value: H.addDays(T(), 7), chips: ["7", "30"] }, { k: "note", label: "What happened", wide: true, req: true, ph: "e.g. Wants delivery by March; sending revised drawing" }],
+      followup: [{ k: "how", label: "How", type: "select", key: "how", options: [["Call", "Call"], ["Visit", "Visit"], ["Email", "Email"], ["WhatsApp", "WhatsApp"], ["Meeting", "Meeting"]], value: "Call" }, { k: "next", label: "Next follow-up", type: "date", value: H.addDays(T(), 7), chips: ["7", "30"] }, { k: "note", label: "What happened", wide: true, req: true, ph: "e.g. Wants delivery by March" }],
       cancel: [{ k: "reason", label: "Why", wide: true, req: true, ph: a.action === "jobCancel" ? "e.g. Customer cancelled the order" : "e.g. Supplier can't supply, ordered elsewhere" }],
       closebal: [{ k: "reason", label: "Why the rest won't come", wide: true, req: true, value: "Supplier can't supply the balance" }],
     }[a.input];
@@ -2649,6 +2714,7 @@ body::before { background: var(--surface-raised); }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPal(); return; }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !/input|textarea|select/i.test(e.target.tagName) && undoState) { e.preventDefault(); undo(); return; }
     if (!$("#pal").hidden) { if (e.key === "Escape") closePal(); else if (e.key === "ArrowDown") { pal.sel = Math.min(pal.sel + 1, pal.list.length - 1); drawPal(); e.preventDefault(); } else if (e.key === "ArrowUp") { pal.sel = Math.max(pal.sel - 1, 0); drawPal(); e.preventDefault(); } else if (e.key === "Enter" && pal.list[pal.sel]) { const f = pal.list[pal.sel][2]; closePal(); f(); } return; }
+    if ($("#leave")) { if (e.key === "Escape") { e.preventDefault(); hideLeave(); } return; }
     if (e.key === "Escape" && !$("#sheet").hidden) { requestClose(); return; }
     const typing = /input|textarea|select/i.test(e.target.tagName) || e.target.isContentEditable;
     if (!typing && $("#sheet").hidden && !e.metaKey && !e.ctrlKey && !e.altKey) {
